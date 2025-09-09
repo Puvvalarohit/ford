@@ -1,20 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>In-Browser Code Compiler</title>
+  <title>Multi-Language Code Compiler</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
       background: #1e1e2f;
       color: #f1f1f1;
       padding: 20px;
     }
-
-    h1 {
-      text-align: center;
-    }
-
+    h1 { text-align: center; }
     select, textarea, button {
       width: 100%;
       margin-top: 10px;
@@ -23,24 +20,19 @@
       border-radius: 5px;
       border: none;
     }
-
     textarea {
       height: 200px;
       background: #2d2d3a;
       color: #f1f1f1;
-      resize: vertical;
     }
-
     button {
       background: #4CAF50;
       color: white;
       cursor: pointer;
     }
-
     button:hover {
       background: #45a049;
     }
-
     pre {
       background: #111;
       padding: 15px;
@@ -50,60 +42,55 @@
   </style>
 </head>
 <body>
-  <h1>🌐 In-Browser Code Runner (JS + Python)</h1>
+  <h1>🌐 Multi-Language Code Compiler</h1>
 
   <label for="language">Choose Language:</label>
   <select id="language">
-    <option value="javascript">JavaScript</option>
-    <option value="python">Python</option>
+    <option value="50">C</option>
+    <option value="54">C++</option>
+    <option value="62">Java</option>
+    <option value="71">Python</option>
+    <option value="63">JavaScript</option>
   </select>
 
   <label for="code">Enter your code:</label>
   <textarea id="code">// Write your code here</textarea>
 
+  <label for="input">Input (optional):</label>
+  <textarea id="input" placeholder="Program input here..."></textarea>
+
   <button onclick="runCode()">Run Code</button>
 
-  <h2>🖥️ Output:</h2>
-  <pre id="output">Your output will appear here...</pre>
-
-  <!-- Pyodide (Python in the browser) -->
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <h2>Output:</h2>
+  <pre id="output">Output will appear here...</pre>
 
   <script>
-    let pyodideReady = false;
-    let pyodide;
-
-    async function loadPyodideAndPackages() {
-      pyodide = await loadPyodide();
-      pyodideReady = true;
-      console.log("✅ Pyodide loaded!");
-    }
-
-    loadPyodideAndPackages();
-
     async function runCode() {
-      const language = document.getElementById("language").value;
       const code = document.getElementById("code").value;
-      const output = document.getElementById("output");
+      const language_id = document.getElementById("language").value;
+      const input = document.getElementById("input").value;
+      const outputEl = document.getElementById("output");
 
-      output.textContent = "⏳ Running...";
+      outputEl.textContent = "⏳ Running...";
 
-      try {
-        if (language === "javascript") {
-          const result = eval(code);
-          output.textContent = result !== undefined ? result : "✅ Code executed.";
-        } else if (language === "python") {
-          if (!pyodideReady) {
-            output.textContent = "⚠️ Pyodide is still loading...";
-            return;
-          }
-          let result = await pyodide.runPythonAsync(code);
-          output.textContent = result !== undefined ? result : "✅ Code executed.";
-        } else {
-          output.textContent = "❌ Language not supported.";
-        }
-      } catch (err) {
-        output.textContent = "❌ Error:\n" + err;
+      const response = await fetch("http://localhost:3000/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ language_id, source_code: code, stdin: input })
+      });
+
+      const result = await response.json();
+
+      if (result.stdout) {
+        outputEl.textContent = result.stdout;
+      } else if (result.stderr) {
+        outputEl.textContent = "❌ Error:\n" + result.stderr;
+      } else if (result.compile_output) {
+        outputEl.textContent = "⚠️ Compile Error:\n" + result.compile_output;
+      } else {
+        outputEl.textContent = "❌ Unknown Error";
       }
     }
   </script>
